@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>キュートなナンプレ</title>
+<style>
+body {
+  background: #fffaf3;
+  font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+  text-align: center;
+}
+#sudoku-board {
+  display: grid;
+  grid-template-columns: repeat(9, 40px);
+  grid-template-rows: repeat(9, 40px);
+  gap: 2px;
+  margin: 30px auto 10px auto;
+  width: max-content;
+}
+.cell {
+  position: relative;
+  background: #fff;
+  border: 2px solid #fffaf3;
+  font-size: 24px;
+  font-weight: bold;
+  color: #6d4c41;
+  text-align: center;
+  outline: none;
+  border-radius: 8px;
+}
+.cell[data-block="0"] { background: #ffe4ec; }
+.cell[data-block="1"] { background: #e0f7fa; }
+.cell[data-block="2"] { background: #fff9c4; }
+.cell[data-block="3"] { background: #f8bbd0; }
+.cell[data-block="4"] { background: #d7ffd9; }
+.cell[data-block="5"] { background: #ffe0b2; }
+.cell[data-block="6"] { background: #e1bee7; }
+.cell[data-block="7"] { background: #c8e6c9; }
+.cell[data-block="8"] { background: #d7ccc8; }
+.cell input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  font-weight: bold;
+  color: #6d4c41;
+  text-align: center;
+  outline: none;
+}
+.cell input:disabled {
+  color: #4e342e;
+  background: transparent;
+}
+.memo {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 36px;
+  font-size: 10px;
+  color: #a1887f;
+  text-align: left;
+  pointer-events: none;
+  white-space: pre-wrap;
+  line-height: 1.1;
+}
+#controls {
+  margin: 20px auto 10px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+}
+#mode-btns {
+  margin-bottom: 10px;
+}
+.mode-btn {
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 16px;
+  padding: 10px 24px;
+  margin: 4px 0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mode-btn.selected, .mode-btn:active {
+  box-shadow: 0 0 8px #ffb6c1;
+}
+#main-mode { background: #ffe4e1; color: #d2691e; }
+#memo-mode { background: #e0ffff; color: #4682b4; }
+#used-labels span {
+  display: inline-block;
+  min-width: 32px;
+  margin: 2px 4px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+}
+#status {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 10px 0;
+  color: #d2691e;
+}
+#reset-btn {
+  font-size: 16px;
+  font-weight: bold;
+  background: #ffe4e1;
+  color: #d2691e;
+  border: none;
+  border-radius: 16px;
+  padding: 10px 24px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<h2>キュートなナンプレ</h2>
+<div id="sudoku-board"></div>
+<div id="controls">
+  <div id="mode-btns">
+    <button id="main-mode" class="mode-btn selected">本入れ</button>
+    <button id="memo-mode" class="mode-btn">仮入れ</button>
+  </div>
+  <div id="used-labels"></div>
+  <div id="status"></div>
+  <button id="reset-btn">もう一度やる</button>
+</div>
+<script>
+// --- 数独生成（簡易・ランダム性重視/解答保証なし） ---
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+function isValid(board, row, col, num) {
+  for (let i = 0; i < 9; i++) {
+    if (board[row][i] === num || board[i][col] === num) return false;
+  }
+  const sr = Math.floor(row/3)*3, sc = Math.floor(col/3)*3;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++)
+    if (board[sr+i][sc+j] === num) return false;
+  return true;
+}
+function fillBoard(board) {
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (board[row][col] === 0) {
+        let nums = [1,2,3,4,5,6,7,8,9];
+        shuffle(nums);
+        for (let num of nums) {
+          if (isValid(board, row, col, num)) {
+            board[row][col] = num;
+            if (fillBoard(board)) return true;
+            board[row][col] = 0;
+          }
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+function generateSudoku() {
+  let board = Array.from({length:9},()=>Array(9).fill(0));
+  fillBoard(board);
+  return board;
+}
+function maskBoard(board, maskCount=30) {
+  let masked = board.map(row=>row.slice());
+  let cells = [];
+  for (let i=0;i<9;i++) for (let j=0;j<9;j++) cells.push([i,j]);
+  shuffle(cells);
+  for (let k=0;k<maskCount;k++) {
+    let [i,j] = cells[k];
+    masked[i][j] = 0;
+  }
+  return masked;
+}
+
+// --- UIロジック ---
+let solution, puzzle, mistakeCount, gameOver, mode, memos;
+const boardDiv = document.getElementById('sudoku-board');
+const usedLabelsDiv = document.getElementById('used-labels');
+const statusDiv = document.getElementById('status');
+const mainBtn = document.getElementById('main-mode');
+const memoBtn = document.getElementById('memo-mode');
+const resetBtn = document.getElementById('reset-btn');
+
+function blockIndex(i, j) { return Math.floor(i/3)*3 + Math.floor(j/3); }
+
+function renderBoard() {
+  boardDiv.innerHTML = '';
+  memos = Array.from({length:9},()=>Array(9).fill(''));
+  for (let i=0;i<9;i++) for (let j=0;j<9;j++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.row = i;
+    cell.dataset.col = j;
+    cell.dataset.block = blockIndex(i,j);
+    // メモ
+    const memo = document.createElement('div');
+    memo.className = 'memo';
+    memo.textContent = '';
+    cell.appendChild(memo);
+    // 本入れ
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 1;
+    input.autocomplete = 'off';
+    input.value = puzzle[i][j] ? puzzle[i][j] : '';
+    if (puzzle[i][j]) input.disabled = true;
+    input.addEventListener('input', e => onInput(i, j, input, memo));
+    input.addEventListener('keydown', e => onKeyDown(i, j, input, memo, e));
+    cell.appendChild(input);
+    boardDiv.appendChild(cell);
+  }
+}
+
+function updateUsedLabels() {
+  let used = Array(10).fill(0);
+  for (let i=0;i<9;i++) for (let j=0;j<9;j++) {
+    const v = boardDiv.children[i*9+j].querySelector('input').value;
+    if (v && /^[1-9]$/.test(v)) used[+v]++;
+  }
+  usedLabelsDiv.innerHTML = '';
+  for (let n=1; n<=9; n++) {
+    let span = document.createElement('span');
+    span.textContent = used[n] >= 9 ? `${n} ×` : `${n} (${used[n]})`;
+    span.style.background = used[n] >= 9 ? '#ffb6b9' : '#f6eac2';
+    span.style.color = used[n] >= 9 ? 'red' : '#6d4c41';
+    usedLabelsDiv.appendChild(span);
+  }
+}
+
+function onInput(i, j, input, memo) {
+  if (gameOver) return;
+  if (mode === 'memo') {
+    input.value = '';
+  } else {
+    // 本入れ
+    input.value = input.value.replace(/[^1-9]/g, '').slice(0,1);
+    if (input.value) {
+      if (input.value == solution[i][j]) {
+        input.style.color = 'blue';
+        setTimeout(()=>{input.style.color='#6d4c41';}, 500);
+        checkClear();
+      } else {
+        input.style.color = 'red';
+        mistakeCount++;
+        statusDiv.textContent = `不正解: ${mistakeCount}回`;
+        if (mistakeCount >= 5) {
+          statusDiv.textContent = 'ゲームオーバー！ もう一度やるを押してください';
+          gameOver = true;
+          disableAllInputs();
+        }
+        setTimeout(()=>{
+          input.value = '';
+          input.style.color = '#6d4c41';
+        }, 500);
+      }
+    }
+    updateUsedLabels();
+  }
+}
+
+function onKeyDown(i, j, input, memo, e) {
+  if (gameOver) return;
+  if (mode === 'memo' && /^[1-9]$/.test(e.key)) {
+    e.preventDefault();
+    let nums = new Set(memo.textContent.split(' ').filter(x=>x));
+    if (nums.has(e.key)) nums.delete(e.key);
+    else nums.add(e.key);
+    memo.textContent = Array.from(nums).sort().join(' ');
+  }
+}
+
+function checkClear() {
+  for (let i=0;i<9;i++) for (let j=0;j<9;j++) {
+    const input = boardDiv.children[i*9+j].querySelector('input');
+    if (!input.disabled && (!input.value || !/^[1-9]$/.test(input.value))) return;
+  }
+  statusDiv.textContent = 'ゲームクリア！おめでとう！';
+  statusDiv.style.color = '#43a047';
+  gameOver = true;
+  disableAllInputs();
+}
+
+function disableAllInputs() {
+  for (let i=0;i<9;i++) for (let j=0;j<9;j++) {
+    const input = boardDiv.children[i*9+j].querySelector('input');
+    if (!input.disabled) input.disabled = true;
+  }
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  mainBtn.classList.toggle('selected', mode==='main');
+  memoBtn.classList.toggle('selected', mode==='memo');
+}
+
+function resetGame() {
+  solution = generateSudoku();
+  puzzle = maskBoard(solution, 30);
+  mistakeCount = 0;
+  gameOver = false;
+  statusDiv.textContent = '';
+  statusDiv.style.color = '#d2691e';
+  setMode('main');
+  renderBoard();
+  updateUsedLabels();
+}
+
+mainBtn.onclick = ()=>setMode('main');
+memoBtn.onclick = ()=>setMode('memo');
+resetBtn.onclick = resetGame;
+
+// 初期化
+resetGame();
+</script>
+</body>
+</html>
