@@ -18,6 +18,75 @@ let cleared = false;
 window.onload = () => {
   setupStartScreen();
   document.getElementById('start-screen').style.display = '';
+}
+
+// タッチイベント対応
+function setupTouchEvents() {
+  const canvas = document.getElementById('maze-canvas');
+  if (!canvas) return;
+  canvas.ontouchstart = function(e) {
+    if (cleared || !timerRunning) return;
+    e.preventDefault();
+    handleTouchDraw(e);
+  };
+  canvas.ontouchmove = function(e) {
+    if (cleared || !timerRunning) return;
+    e.preventDefault();
+    handleTouchDraw(e);
+  };
+  canvas.ontouchend = function(e) {
+    lastWallPos = null;
+    e.preventDefault();
+  };
+}
+
+function handleTouchDraw(e) {
+  const canvas = e.target;
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0] || e.changedTouches[0];
+  const x = Math.floor((touch.clientX - rect.left) / CELL_SIZE);
+  const y = Math.floor((touch.clientY - rect.top) / CELL_SIZE);
+  if (!(0 <= x && x < MAZE_W && 0 <= y && y < MAZE_H)) return;
+  // 壁ヒット判定
+  if (maze[y][x] === 1) {
+    if (!lastWallPos || lastWallPos[0] !== x || lastWallPos[1] !== y) {
+      wallHitCount++;
+      lastWallPos = [x, y];
+      if (wallHitCount === 1) {
+        document.getElementById('warn').textContent = 'あと2回までOK';
+      } else if (wallHitCount === 2) {
+        document.getElementById('warn').textContent = 'あと1回までOK';
+      } else if (wallHitCount >= 3) {
+        timerRunning = false;
+        cleared = true;
+        document.getElementById('warn').textContent = '';
+        showResult('NG', 'red');
+      }
+    }
+    return;
+  } else {
+    lastWallPos = null;
+    document.getElementById('warn').textContent = '';
+  }
+  // マーク追加
+  const key = `${x},${y}`;
+  if (!poopMarks.has(key)) {
+    poopMarks.add(key);
+    drawMaze();
+  }
+  // ゴール判定
+  if (x === goalPos[0] && y === goalPos[1]) {
+    if (checkPoopPath()) {
+      timerRunning = false;
+      cleared = true;
+      showResult('OK', 'orange');
+    } else {
+      timerRunning = false;
+      cleared = true;
+      showResult('NG', 'red');
+    }
+  }
+}
 };
 
 function setupStartScreen() {
@@ -68,6 +137,7 @@ function startGame() {
   document.getElementById('maze-canvas').onmousedown = onMouseDown;
   document.getElementById('maze-canvas').onmousemove = onMouseDrag;
   document.getElementById('maze-canvas').onmouseup = () => { lastWallPos = null; };
+  setupTouchEvents();
 }
 
 function updateTimer() {
