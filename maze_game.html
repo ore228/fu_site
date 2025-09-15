@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>迷路ゲーム</title>
   <style>
     body {
@@ -9,6 +10,37 @@
       font-family: 'Arial', sans-serif;
     }
     #game-container { width: 650px; margin: 24px auto; background: #fff7b2; border-radius: 16px; box-shadow: 0 0 16px #ccc; padding: 16px; }
+
+    @media (max-width: 700px) {
+      #game-container {
+        width: 98vw;
+        min-width: 0;
+        padding: 4vw 1vw;
+        box-sizing: border-box;
+      }
+      #maze-canvas {
+        width: 90vw !important;
+        height: 90vw !important;
+        max-width: 98vw;
+        max-height: 98vw;
+      }
+      .mark-btn, .time-btn {
+        font-size: 1.2rem;
+        padding: 6px 10px;
+      }
+      #start-btn, #restart-btn {
+        font-size: 1.2rem;
+        padding: 10px 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      h2 {
+        font-size: 1.1rem;
+      }
+      #warn, #timer, #result {
+        font-size: 1rem;
+      }
+    }
   #start-screen { display: block; }
     .center { text-align: center; }
     .mark-btn {
