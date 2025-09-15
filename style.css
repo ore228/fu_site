@@ -42,3 +42,30 @@ footer {
     margin-top: 2rem;
     font-size: 0.9rem;
 }
+
+@media (max-width: 600px) {
+    nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    main {
+        padding: 1rem;
+        margin: 1rem;
+    }
+    header {
+        padding: 0.5rem 0;
+    }
+    h1 {
+        font-size: 1.5rem;
+    }
+    h2 {
+        font-size: 1.2rem;
+    }
+    .button, a.button {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+        font-size: 1rem;
+        padding: 1em 0;
+    }
+}
