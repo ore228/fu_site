@@ -21,31 +21,57 @@ window.onload = () => {
 }
 
 // タッチイベント対応
+let lastTouchCell = null;
 function setupTouchEvents() {
   const canvas = document.getElementById('maze-canvas');
   if (!canvas) return;
   canvas.ontouchstart = function(e) {
     if (cleared || !timerRunning) return;
     e.preventDefault();
-    handleTouchDraw(e);
+    lastTouchCell = getTouchCell(e);
+    if (lastTouchCell) markCellWithWallCheck(lastTouchCell[0], lastTouchCell[1]);
   };
   canvas.ontouchmove = function(e) {
     if (cleared || !timerRunning) return;
     e.preventDefault();
-    handleTouchDraw(e);
+    const cell = getTouchCell(e);
+    if (cell && lastTouchCell) {
+      markLineCells(lastTouchCell[0], lastTouchCell[1], cell[0], cell[1]);
+    }
+    lastTouchCell = cell;
   };
   canvas.ontouchend = function(e) {
     lastWallPos = null;
+    lastTouchCell = null;
     e.preventDefault();
   };
 }
 
-function handleTouchDraw(e) {
+function getTouchCell(e) {
   const canvas = e.target;
   const rect = canvas.getBoundingClientRect();
   const touch = e.touches[0] || e.changedTouches[0];
   const x = Math.floor((touch.clientX - rect.left) / CELL_SIZE);
   const y = Math.floor((touch.clientY - rect.top) / CELL_SIZE);
+  if (!(0 <= x && x < MAZE_W && 0 <= y && y < MAZE_H)) return null;
+  return [x, y];
+}
+
+function markLineCells(x0, y0, x1, y1) {
+  const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  let x = x0, y = y0;
+  while (true) {
+    markCellWithWallCheck(x, y);
+    if (x === x1 && y === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x += sx; }
+    if (e2 < dx) { err += dx; y += sy; }
+  }
+}
+
+function markCellWithWallCheck(x, y) {
   if (!(0 <= x && x < MAZE_W && 0 <= y && y < MAZE_H)) return;
   // 壁ヒット判定
   if (maze[y][x] === 1) {
@@ -87,7 +113,6 @@ function handleTouchDraw(e) {
     }
   }
 }
-};
 
 function setupStartScreen() {
   // マーク選択
