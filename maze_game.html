@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>迷路ゲーム</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #ffe29a 0%, #b2ffd6 50%, #e2b2ff 100%);
+      font-family: 'Arial', sans-serif;
+    }
+    #game-container { width: 650px; margin: 24px auto; background: #fff7b2; border-radius: 16px; box-shadow: 0 0 16px #ccc; padding: 16px; }
+  #start-screen { display: block; }
+    .center { text-align: center; }
+    .mark-btn {
+      font-size: 2rem; margin: 0 8px 8px 0; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-weight: bold; transition: 0.2s; box-shadow: 0 2px 8px #eee;
+      background: #ffb7b2;
+      color: #fff;
+    }
+    .mark-btn.mark-0 { background: #ffb7b2; }
+    .mark-btn.mark-1 { background: #ffe29a; color: #a0522d; }
+    .mark-btn.mark-2 { background: #b2ffd6; color: #008000; }
+    .mark-btn.mark-3 { background: #b2d8ff; color: #1e90ff; }
+    .mark-btn.mark-4 { background: #e2b2ff; color: #800080; }
+    .mark-btn.selected {
+      outline: 3px solid #ff69b4;
+      background: #ff69b4 !important;
+      color: #fff !important;
+    }
+    .time-btn {
+      font-size: 2rem; margin: 0 8px 8px 0; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-weight: bold; transition: 0.2s; box-shadow: 0 2px 8px #eee;
+      background: #b2ffd6;
+      color: #333;
+    }
+    .time-btn.selected { outline: 3px solid #ff69b4; background: #ffb7b2; color: #fff; }
+    #maze-canvas { background: #fff; display: block; margin: 0 auto; border-radius: 8px; }
+    #warn { color: red; font-size: 1.5rem; margin: 8px; }
+    #timer { color: #1e90ff; font-size: 1.2rem; }
+    #result { font-size: 2.2rem; font-weight: bold; margin: 16px; }
+    #restart-btn { font-size: 1.1rem; padding: 8px 24px; border-radius: 8px; background: #ffb7b2; color: #fff; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <div id="start-screen" class="center">
+    <h2>かわいい迷路ゲームセレクト</h2>
+    <div style="margin:16px 0;">
+      <div>マークせんたく</div>
+      <div id="mark-select"></div>
+    </div>
+    <div style="margin:16px 0;">
+      <div>じかんせいげん</div>
+      <div id="time-select"></div>
+    </div>
+    <button id="start-btn" style="font-size:2rem; margin-top:24px;">すたーと</button>
+  </div>
+  <div id="game-screen" class="center">
+    <canvas id="maze-canvas" width="600" height="600"></canvas>
+    <div id="timer"></div>
+    <div id="warn"></div>
+    <div id="result"></div>
+    <button id="restart-btn" style="display:none;">もう一度やる</button>
+  </div>
+</div>
+<script src="./maze_game.js"></script>
+</body>
+</html>
