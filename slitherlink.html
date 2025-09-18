@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>スリザーリンク風パズル</title>
+  <style>
+    body { font-family: 'MS Gothic', sans-serif; }
+    #canvas { background: #fff; border: 1px solid #888; }
+    .btns { margin: 8px; }
+    button { font-size: 16px; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h2>スリザーリンク風パズル</h2>
+  <div class="btns">
+    <button id="startBtn">ゲームスタート（線リセット）</button>
+    <button id="resetBtn">ゲームリセット（盤面変更）</button>
+    <button id="answerBtn">回答（自動クリア）</button>
+  </div>
+  <canvas id="canvas" width="360" height="420"></canvas>
+  <div id="result" style="font-size:24px; margin-top:8px;"></div>
+<script>
+const SIZE = 5, CELL = 48, MARGIN = 30;
+let grid = [], h_edges = [], v_edges = [], loop = [], gameover = false;
+
+// 盤面生成（多角形ループ＋数値割り当て）
+function generateBoard() {
+  // 点リスト
+  let points = [];
+  for (let y=0; y<=SIZE; y++) for (let x=0; x<=SIZE; x++) points.push([x,y]);
+  // ランダムなスタート
+  let start = points[Math.floor(Math.random()*points.length)];
+  let visited = {}, edges = [], path = [start];
+  function neighbors(p) {
+    let [x,y] = p, res = [];
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{
+      let nx=x+dx, ny=y+dy;
+      if(nx>=0&&nx<=SIZE&&ny>=0&&ny<=SIZE) res.push([nx,ny]);
+    });
+    return res;
+  }
+  function dfs(p, prev) {
+    visited[p] = true;
+    let nbs = neighbors(p).sort(()=>Math.random()-0.5);
+    for(let nb of nbs){
+      if(nb.toString()===prev?.toString()) continue;
+      if(nb.toString()===start.toString() && path.length>3){
+        edges.push([p,nb]);
+        path.push(nb);
+        return true;
+      }
+      if(!visited[nb]){
+        edges.push([p,nb]);
+        path.push(nb);
+        if(dfs(nb,p)) return true;
+        edges.pop(); path.pop();
+      }
+    }
+    visited[p] = false;
+    return false;
+  }
+  dfs(start,null);
+  loop = edges.map(e=>e.map(p=>[...p]));
+  // 数値割り当て
+  grid = Array(SIZE).fill().map(()=>Array(SIZE).fill(null));
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+    let cnt=0;
+    let around = [
+      [[x,y],[x+1,y]],
+      [[x,y+1],[x+1,y+1]],
+      [[x,y],[x,y+1]],
+      [[x+1,y],[x+1,y+1]]
+    ];
+    for(let a of around){
+      if(loop.some(l=>(l[0].toString()===a[0].toString()&&l[1].toString()===a[1].toString())||(l[1].toString()===a[0].toString()&&l[0].toString()===a[1].toString()))) cnt++;
+    }
+    grid[y][x]=cnt;
+  }
+  // 難易度調整: 20%をnull
+  for(let i=0;i<SIZE*SIZE*0.2;i++){
+    let y=Math.floor(Math.random()*SIZE),x=Math.floor(Math.random()*SIZE);
+    grid[y][x]=null;
+  }
+  h_edges = Array(SIZE+1).fill().map(()=>Array(SIZE).fill(0));
+  v_edges = Array(SIZE).fill().map(()=>Array(SIZE+1).fill(0));
+  gameover = false;
+  draw();
+  document.getElementById('result').textContent = '';
+}
+
+// 線を引く
+function toggleEdge(x, y, dir) {
+  if(gameover) return;
+  if(dir==='h') h_edges[y][x] = h_edges[y][x]?0:1;
+  else v_edges[y][x] = v_edges[y][x]?0:1;
+  if(isNG()) {
+    gameover = true;
+    document.getElementById('result').textContent = 'NG';
+  }
+  draw();
+  if(isGoal() && isAllNumbersOK()) {
+    document.getElementById('result').textContent = 'ゴール';
+    gameover = true;
+  }
+}
+
+// NG判定
+function isNG() {
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+    let num=grid[y][x];
+    if(num!==null){
+      let cnt=0;
+      if(h_edges[y][x])cnt++;
+      if(h_edges[y+1][x])cnt++;
+      if(v_edges[y][x])cnt++;
+      if(v_edges[y][x+1])cnt++;
+      if(cnt>num) return true;
+    }
+  }
+  return false;
+}
+
+// ゴール判定（一筆書き）
+function isGoal() {
+  let points=new Set(),edges=new Set();
+  for(let y=0;y<=SIZE;y++)for(let x=0;x<=SIZE;x++){
+    if(x<SIZE&&h_edges[y][x]){
+      edges.add(`${x},${y}-${x+1},${y}`);
+      points.add(`${x},${y}`); points.add(`${x+1},${y}`);
+    }
+    if(y<SIZE&&v_edges[y][x]){
+      edges.add(`${x},${y}-${x},${y+1}`);
+      points.add(`${x},${y}`); points.add(`${x},${y+1}`);
+    }
+  }
+  if(!edges.size) return false;
+  let visited=new Set(), arr=[...points], start=arr[0], queue=[start];
+  while(queue.length){
+    let p=queue.pop();
+    if(visited.has(p))continue;
+    visited.add(p);
+    for(let e of edges){
+      let [a,b]=e.split('-');
+      if(p===a&&!visited.has(b))queue.push(b);
+      if(p===b&&!visited.has(a))queue.push(a);
+    }
+  }
+  return visited.size===points.size;
+}
+
+// 全ての数値の周囲の線が一致
+function isAllNumbersOK() {
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+    let num=grid[y][x];
+    if(num!==null){
+      let cnt=0;
+      if(h_edges[y][x])cnt++;
+      if(h_edges[y+1][x])cnt++;
+      if(v_edges[y][x])cnt++;
+      if(v_edges[y][x+1])cnt++;
+      if(cnt!==num) return false;
+    }
+  }
+  return true;
+}
+
+// 回答（自動クリア）
+function autoSolve() {
+  h_edges = Array(SIZE+1).fill().map(()=>Array(SIZE).fill(0));
+  v_edges = Array(SIZE).fill().map(()=>Array(SIZE+1).fill(0));
+  for(let l of loop){
+    let [x1,y1]=l[0], [x2,y2]=l[1];
+    if(y1===y2){
+      let y=y1, x=Math.min(x1,x2);
+      h_edges[y][x]=1;
+    }else if(x1===x2){
+      let x=x1, y=Math.min(y1,y2);
+      v_edges[y][x]=1;
+    }
+  }
+  gameover = false;
+  draw();
+  if(isGoal() && isAllNumbersOK()) {
+    document.getElementById('result').textContent = 'ゴール';
+    gameover = true;
+  }
+}
+
+// 描画
+function draw() {
+  let ctx = document.getElementById('canvas').getContext('2d');
+  ctx.clearRect(0,0,360,420);
+  // 点
+  for(let y=0;y<=SIZE;y++)for(let x=0;x<=SIZE;x++){
+    ctx.beginPath();
+    ctx.arc(MARGIN+x*CELL, MARGIN+y*CELL, 4, 0, 2*Math.PI);
+    ctx.fillStyle='#333'; ctx.fill();
+  }
+  // 数字
+  ctx.font='20px MS Gothic';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+    let num=grid[y][x];
+    if(num!==null){
+      ctx.fillStyle='#222';
+      ctx.fillText(num, MARGIN+x*CELL+CELL/2, MARGIN+y*CELL+CELL/2);
+    }
+  }
+  // 線
+  ctx.strokeStyle='blue'; ctx.lineWidth=4;
+  for(let y=0;y<=SIZE;y++)for(let x=0;x<SIZE;x++){
+    if(h_edges[y][x]){
+      ctx.beginPath();
+      ctx.moveTo(MARGIN+x*CELL, MARGIN+y*CELL);
+      ctx.lineTo(MARGIN+(x+1)*CELL, MARGIN+y*CELL);
+      ctx.stroke();
+    }
+  }
+  for(let y=0;y<SIZE;y++)for(let x=0;x<=SIZE;x++){
+    if(v_edges[y][x]){
+      ctx.beginPath();
+      ctx.moveTo(MARGIN+x*CELL, MARGIN+y*CELL);
+      ctx.lineTo(MARGIN+x*CELL, MARGIN+(y+1)*CELL);
+      ctx.stroke();
+    }
+  }
+}
+
+// クリック判定
+document.getElementById('canvas').addEventListener('click', function(e){
+  if(gameover) return;
+  let rect = e.target.getBoundingClientRect();
+  let ex = e.clientX-rect.left, ey = e.clientY-rect.top;
+  let x = Math.floor((ex-MARGIN)/CELL), y = Math.floor((ey-MARGIN)/CELL);
+  if(ex<MARGIN||ey<MARGIN||x>SIZE||y>SIZE) return;
+  // 横線
+  for(let yy=0;yy<=SIZE;yy++)for(let xx=0;xx<SIZE;xx++){
+    let x0=MARGIN+xx*CELL, y0=MARGIN+yy*CELL-8, x1=MARGIN+(xx+1)*CELL, y1=MARGIN+yy*CELL+8;
+    if(x0<=ex&&ex<=x1&&y0<=ey&&ey<=y1){
+      toggleEdge(xx,yy,'h'); return;
+    }
+  }
+  // 縦線
+  for(let yy=0;yy<SIZE;yy++)for(let xx=0;xx<=SIZE;xx++){
+    let x0=MARGIN+xx*CELL-8, y0=MARGIN+yy*CELL, x1=MARGIN+xx*CELL+8, y1=MARGIN+(yy+1)*CELL;
+    if(x0<=ex&&ex<=x1&&y0<=ey&&ey<=y1){
+      toggleEdge(xx,yy,'v'); return;
+    }
+  }
+});
+
+// ボタン
+document.getElementById('startBtn').onclick = function(){
+  h_edges = Array(SIZE+1).fill().map(()=>Array(SIZE).fill(0));
+  v_edges = Array(SIZE).fill().map(()=>Array(SIZE+1).fill(0));
+  gameover = false;
+  draw();
+  document.getElementById('result').textContent = '';
+};
+document.getElementById('resetBtn').onclick = generateBoard;
+document.getElementById('answerBtn').onclick = autoSolve;
+
+// 初期盤面生成
+generateBoard();
+</script>
+</body>
+</html>
