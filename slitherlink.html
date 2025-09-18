@@ -4,21 +4,123 @@
   <meta charset="UTF-8">
   <title>スリザーリンク風パズル</title>
   <style>
-    body { font-family: 'MS Gothic', sans-serif; }
-    #canvas { background: #fff; border: 1px solid #888; }
-    .btns { margin: 8px; }
-    button { font-size: 16px; margin-right: 8px; }
+    @media (max-width: 700px) {
+      .main-flex {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 1em !important;
+      }
+      .btns {
+        width: 100%;
+        max-width: 98vw;
+        align-items: stretch !important;
+      }
+      button {
+        width: 100%;
+        min-width: 0;
+        font-size: 1.1rem;
+      }
+      #canvas {
+        max-width: 98vw;
+        height: auto;
+      }
+      #result {
+        font-size: 2rem;
+        padding: 0.3em 0.5em;
+      }
+    }
+    body {
+      font-family: 'MS Gothic', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #ffe29a 0%, #b2ffd6 50%, #e2b2ff 100%);
+      margin: 0;
+      min-height: 100vh;
+    }
+    h2 {
+      color: #ff69b4;
+      text-shadow: 1px 1px 4px #fff;
+      background: #fff7b2;
+      border-radius: 12px;
+      padding: 0.5em 0;
+      margin-top: 0.5em;
+    }
+    #canvas {
+      background: #fff;
+      border: 2px solid #ffb7b2;
+      box-shadow: 0 2px 12px #ffe29a;
+      border-radius: 12px;
+      margin: 2em auto 1em auto;
+      display: block;
+      max-width: 98vw;
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .btns {
+      margin: 12px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+      align-items: center;
+      max-width: 320px;
+    }
+    button {
+      font-size: 18px;
+      margin: 0;
+      padding: 0.5em 1.2em;
+      border-radius: 8px;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      box-shadow: 0 2px 8px #e2b2ff;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 220px;
+      max-width: 90vw;
+      display: block;
+    }
+    #startBtn {
+      background: #ffb7b2;
+    }
+    #resetBtn {
+      background: #b2ffd6;
+      color: #333;
+    }
+    #answerBtn {
+      background: #e2b2ff;
+    }
+    button:hover {
+      filter: brightness(1.1);
+      opacity: 0.9;
+    }
+    #result {
+      color: #ff69b4;
+      background: #fff7b2;
+      font-size: 2.5rem;
+      font-weight: bold;
+      text-shadow: 2px 2px 8px #e2b2ff, 0 0 2px #fff;
+      border-radius: 16px;
+      padding: 0.5em 1em;
+      margin: 2em auto 0 auto;
+      text-align: center;
+      max-width: 80vw;
+      box-shadow: 0 2px 12px #ffe29a;
+      display: block;
+    }
   </style>
 </head>
 <body>
   <h2>スリザーリンク風パズル</h2>
-  <div class="btns">
-    <button id="startBtn">ゲームスタート（線リセット）</button>
-    <button id="resetBtn">ゲームリセット（盤面変更）</button>
-    <button id="answerBtn">回答（自動クリア）</button>
+  <div class="main-flex" style="display: flex; justify-content: center; align-items: flex-start; gap: 2em; margin-top: 2em; flex-wrap: wrap;">
+    <div class="btns" style="align-items: flex-start;">
+      <button id="startBtn">ゲームスタート<br><span style="font-size:0.9em; color:#fff;">（線リセット）</span></button>
+      <button id="resetBtn">ゲームリセット<br><span style="font-size:0.9em; color:#333;">（盤面変更）</span></button>
+      <button id="answerBtn">回答（自動クリア）</button>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <canvas id="canvas" width="360" height="420"></canvas>
+      <div id="result" style="font-size:24px; margin-top:8px;"></div>
+    </div>
   </div>
-  <canvas id="canvas" width="360" height="420"></canvas>
-  <div id="result" style="font-size:24px; margin-top:8px;"></div>
 <script>
 const SIZE = 5, CELL = 48, MARGIN = 30;
 let grid = [], h_edges = [], v_edges = [], loop = [], gameover = false;
